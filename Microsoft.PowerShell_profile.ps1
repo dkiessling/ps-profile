@@ -81,6 +81,15 @@ function Get-Ips() {
    }
 }
 
+$global:GitPromptSettings.BeforeText = ' git ['
+$global:GitPromptSettings.UntrackedText = ' ?'
+$global:HgPromptSettings.BeforeText = ' hg ['
+$global:HgPromptSettings.ModifiedForegroundColor = [ConsoleColor]::Yellow
+$global:HgPromptSettings.DeletedForegroundColor = [ConsoleColor]::Cyan
+$global:HgPromptSettings.UntrackedForegroundColor = [ConsoleColor]::Red
+$global:HgPromptSettings.MissingForegroundColor = [ConsoleColor]::Magenta
+$global:HgPromptSettings.RenamedForegroundColor = [ConsoleColor]::Blue
+
 function prompt { 
     $realLASTEXITCODE = $LASTEXITCODE
 
