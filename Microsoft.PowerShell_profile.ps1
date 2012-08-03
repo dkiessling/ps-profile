@@ -87,13 +87,14 @@ function prompt {
     # Reset color, which can be messed up by Enable-GitColors
     $Host.UI.RawUI.ForegroundColor = $GitPromptSettings.DefaultForegroundColor
 
-    Write-Host($pwd) -nonewline
+    Write-Host($pwd) -nonewline -foregroundcolor DarkGreen
 
     Write-VcsStatus
 
     $LASTEXITCODE = $realLASTEXITCODE
 
-    return '> ' 
+    Write-Host('>') -nonewline -foregroundcolor DarkGreen
+    return ' ' 
 } 
 
 Set-AdminBackground
