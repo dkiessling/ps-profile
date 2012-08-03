@@ -2,6 +2,7 @@ Push-Location (Split-Path -Path $MyInvocation.MyCommand.Definition -Parent)
 
 # use this instead (see about_Modules for more information):
 Import-Module posh-git
+Import-Module posh-hg
 
 Pop-Location
 
@@ -87,12 +88,6 @@ function prompt {
     $Host.UI.RawUI.ForegroundColor = $GitPromptSettings.DefaultForegroundColor
 
     Write-Host($pwd) -nonewline
-#    $cdrive = [ConsoleColor]::DarkCyan 
-#    $chost = [ConsoleColor]::Green 
-#    $cloc = [ConsoleColor]::White 
-
-#    Write-Host (Get-Drive (pwd).Path) -n -f $cdrive
-#    Write-Host (Shorten-Path (pwd).Path) -n -f $cloc 
 
     Write-VcsStatus
 
