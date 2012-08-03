@@ -4,3 +4,8 @@ Pop-Location
 
 Set-PSDebug -Strict
 $ErrorActionPreference = "stop"
+
+$powershellPath = [Environment]::GetFolderPath("Personal") + "/WindowsPowershell"
+
+Set-Alias fortune "$powershellPath/fortune.ps1"
+fortune
