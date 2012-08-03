@@ -95,6 +95,7 @@ $global:HgPromptSettings.MissingForegroundColor = [ConsoleColor]::Magenta
 $global:HgPromptSettings.RenamedForegroundColor = [ConsoleColor]::Blue
 
 function prompt { 
+    $Host.UI.RawUI.WindowTitle = $env:username + '@' + [System.Environment]::MachineName + ' - ' + $pwd 
     $realLASTEXITCODE = $LASTEXITCODE
 
     # Reset color, which can be messed up by Enable-GitColors
