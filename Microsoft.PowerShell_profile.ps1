@@ -81,8 +81,12 @@ function Get-Ips() {
    }
 }
 
+# posh-git settings
 $global:GitPromptSettings.BeforeText = ' git ['
 $global:GitPromptSettings.UntrackedText = ' ?'
+$global:GitPromptSettings.UntrackedForegroundColor = [ConsoleColor]::Red
+
+# posh-hg settings
 $global:HgPromptSettings.BeforeText = ' hg ['
 $global:HgPromptSettings.ModifiedForegroundColor = [ConsoleColor]::Yellow
 $global:HgPromptSettings.DeletedForegroundColor = [ConsoleColor]::Cyan
