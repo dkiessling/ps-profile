@@ -1,5 +1,8 @@
 Push-Location (Split-Path -Path $MyInvocation.MyCommand.Definition -Parent)
 
+# use this instead (see about_Modules for more information):
+Import-Module posh-git
+
 Pop-Location
 
 # debugging parameters
@@ -70,12 +73,33 @@ function Set-AdminBackground() {
     $Host.UI.RawUI.BackgroundColor = $chost
 }
 
-function get-ips() {
+function Get-Ips() {
    $ent = [net.dns]::GetHostEntry([net.dns]::GetHostName())
    return $ent.AddressList | ?{ $_.ScopeId -ne 0 } | %{
       [string]$_
    }
 }
+
+function prompt { 
+    $realLASTEXITCODE = $LASTEXITCODE
+
+    # Reset color, which can be messed up by Enable-GitColors
+    $Host.UI.RawUI.ForegroundColor = $GitPromptSettings.DefaultForegroundColor
+
+    Write-Host($pwd) -nonewline
+#    $cdrive = [ConsoleColor]::DarkCyan 
+#    $chost = [ConsoleColor]::Green 
+#    $cloc = [ConsoleColor]::White 
+
+#    Write-Host (Get-Drive (pwd).Path) -n -f $cdrive
+#    Write-Host (Shorten-Path (pwd).Path) -n -f $cloc 
+
+    Write-VcsStatus
+
+#    $LASTEXITCODE = $realLASTEXITCODE
+
+    return '> ' 
+} 
 
 Set-AdminBackground
 fortune
