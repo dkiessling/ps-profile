@@ -1,0 +1,3 @@
+[submodule "Modules/posh-hg"]
+	path = Modules/posh-hg
+	url = https://github.com/JeremySkinner/posh-hg.git
