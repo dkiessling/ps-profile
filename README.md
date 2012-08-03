@@ -9,5 +9,6 @@ To use, clone this repository to a `WindowsPowershell` directory in the default 
 
 ### Used powershell modules:
 
- - Keith Dahlby, https://github.com/dahlbyk/posh-git
- - Jeremy Skinner https://github.com/JeremySkinner/posh-hg
+ - Keith Dahlby (posh-git), https://github.com/dahlbyk/posh-git
+ - Jeremy Skinner (posh-hg), https://github.com/JeremySkinner/posh-hg
+ - Tomas Restrepo (fortune), http://winterdom.com/2008/03/powershellfortune
