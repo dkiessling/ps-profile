@@ -9,8 +9,6 @@ $ErrorActionPreference = "stop"
 $powershellPath = [Environment]::GetFolderPath("Personal") + "/WindowsPowershell"
 
 Set-Alias fortune "$powershellPath/fortune.ps1"
-fortune
-
 Remove-Item alias:ls
 Set-Alias ls Get-ChildItemColor
 Set-Alias ll Get-ChildItemColor
@@ -55,3 +53,29 @@ function Get-ChildItemColor {
         }
     }
 }
+
+function Get-Adminuser() {
+   $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+   $p = New-Object Security.Principal.WindowsPrincipal($id)
+   return $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Set-AdminBackground() {
+    if ( Get-Adminuser ) {
+        $chost = [ConsoleColor]::DarkRed;
+    } else {
+        $chost = $Host.UI.RawUI.BackgroundColor
+    }
+
+    $Host.UI.RawUI.BackgroundColor = $chost
+}
+
+function get-ips() {
+   $ent = [net.dns]::GetHostEntry([net.dns]::GetHostName())
+   return $ent.AddressList | ?{ $_.ScopeId -ne 0 } | %{
+      [string]$_
+   }
+}
+
+Set-AdminBackground
+fortune
