@@ -96,7 +96,7 @@ function prompt {
 
     Write-VcsStatus
 
-#    $LASTEXITCODE = $realLASTEXITCODE
+    $LASTEXITCODE = $realLASTEXITCODE
 
     return '> ' 
 } 
