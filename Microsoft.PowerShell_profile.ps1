@@ -16,7 +16,6 @@ Set-Alias fortune "$powershellPath/fortune.ps1"
 Remove-Item alias:ls
 Set-Alias ls Get-ChildItemColor
 Set-Alias ll Get-ChildItemColor
-Set-Alias dir Get-ChildItemColor
 
 function Get-ChildItemColor {
     $fore = $Host.UI.RawUI.ForegroundColor
