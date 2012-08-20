@@ -90,11 +90,11 @@ function UrlEncode([string]$url) {
 }
 
 function HtmlDecode([string]$url) {
-  [Web.Httputility]::HtmlDecode($url)
+    [Web.HttpUtility]::HtmlDecode($url)
 }
 
 function HtmlEncode([string]$url) {
-  [Web.Httputility]::HtmlEncode($url)
+    [Web.HttpUtility]::HtmlEncode($url)
 }
 
 # posh-git settings
