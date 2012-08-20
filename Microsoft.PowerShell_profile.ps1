@@ -81,6 +81,22 @@ function Get-Ips() {
    }
 }
 
+function UrlDecode([string]$url) {
+    [Web.HttpUtility]::UrlDecode($url)
+}
+
+function UrlEncode([string]$url) {
+    [Web.HttpUtility]::UrlEncode($url)
+}
+
+function HtmlDecode([string]$url) {
+  [Web.Httputility]::HtmlDecode($url)
+}
+
+function HtmlEncode([string]$url) {
+  [Web.Httputility]::HtmlEncode($url)
+}
+
 # posh-git settings
 $global:GitPromptSettings.BeforeText = ' git ['
 $global:GitPromptSettings.UntrackedText = ' ?'
