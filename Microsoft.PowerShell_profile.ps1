@@ -12,7 +12,6 @@ $ErrorActionPreference = "stop"
 
 $powershellPath = [Environment]::GetFolderPath("Personal") + "/WindowsPowershell"
 
-Set-Alias fortune "$powershellPath/fortune.ps1"
 Remove-Item alias:ls
 Set-Alias ls Get-ChildItemColor
 Set-Alias ll Get-ChildItemColor
@@ -128,4 +127,3 @@ function prompt {
 } 
 
 Set-AdminBackground
-fortune
