@@ -63,16 +63,6 @@ function Get-Adminuser() {
    return $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Set-AdminBackground() {
-    if ( Get-Adminuser ) {
-        $chost = [ConsoleColor]::DarkRed;
-    } else {
-        $chost = $Host.UI.RawUI.BackgroundColor
-    }
-
-    $Host.UI.RawUI.BackgroundColor = $chost
-}
-
 function Get-Ips() {
    $ent = [net.dns]::GetHostEntry([net.dns]::GetHostName())
    return $ent.AddressList | ?{ $_.ScopeId -ne 0 } | %{
@@ -125,5 +115,3 @@ function prompt {
     Write-Host('>') -nonewline -foregroundcolor DarkGreen
     return ' ' 
 } 
-
-Set-AdminBackground
