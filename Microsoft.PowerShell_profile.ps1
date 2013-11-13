@@ -86,6 +86,11 @@ function HtmlEncode([string]$url) {
     [Web.HttpUtility]::HtmlEncode($url)
 }
 
+# Launch explorer in current folder
+function e {
+    ii .
+}
+
 # posh-git settings
 $global:GitPromptSettings.BeforeText = ' git ['
 $global:GitPromptSettings.UntrackedText = ' ?'
