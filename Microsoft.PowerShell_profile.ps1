@@ -95,6 +95,7 @@ function e {
 $global:GitPromptSettings.BeforeText = ' git ['
 $global:GitPromptSettings.UntrackedText = ' ?'
 $global:GitPromptSettings.UntrackedForegroundColor = [ConsoleColor]::Red
+$global:GitPromptSettings.Debug = $true
 
 # posh-hg settings
 $global:HgPromptSettings.BeforeText = ' hg ['
@@ -111,12 +112,15 @@ function prompt {
     # Reset color, which can be messed up by Enable-GitColors
     $Host.UI.RawUI.ForegroundColor = $GitPromptSettings.DefaultForegroundColor
 
-    Write-Host($pwd) -nonewline -foregroundcolor DarkGreen
+    Write-Host($pwd.ProviderPath) -nonewline
 
     Write-VcsStatus
 
-    $LASTEXITCODE = $realLASTEXITCODE
+    $global:LASTEXITCODE = $realLASTEXITCODE
 
-    Write-Host('>') -nonewline -foregroundcolor DarkGreen
-    return ' ' 
+    return '> ' 
 } 
+
+Enable-GitColors
+
+Pop-Location
