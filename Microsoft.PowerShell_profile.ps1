@@ -95,7 +95,6 @@ function e {
 $global:GitPromptSettings.BeforeText = ' git ['
 $global:GitPromptSettings.UntrackedText = ' ?'
 $global:GitPromptSettings.UntrackedForegroundColor = [ConsoleColor]::Red
-$global:GitPromptSettings.Debug = $true
 
 # posh-hg settings
 $global:HgPromptSettings.BeforeText = ' hg ['
