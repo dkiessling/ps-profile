@@ -1,6 +1,6 @@
 # General Utility Functions
 
-function Invoke-NullCoalescing {
+function Coalesce-Args {
     $result = $null
     foreach($arg in $args) {
         if ($arg -is [ScriptBlock]) {
@@ -13,13 +13,13 @@ function Invoke-NullCoalescing {
     $result
 }
 
-Set-Alias ?? Invoke-NullCoalescing -Force
+Set-Alias ?? Coalesce-Args -Force
 
 function Get-LocalOrParentPath($path) {
-    $checkIn = Get-Item -Force .
+    $checkIn = Get-Item .
     while ($checkIn -ne $NULL) {
         $pathToTest = [System.IO.Path]::Combine($checkIn.fullname, $path)
-        if (Test-Path -LiteralPath $pathToTest) {
+        if (Test-Path $pathToTest) {
             return $pathToTest
         } else {
             $checkIn = $checkIn.parent

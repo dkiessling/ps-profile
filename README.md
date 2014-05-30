@@ -11,4 +11,3 @@ To use, clone this repository to a `WindowsPowershell` directory in the default 
 
  - Keith Dahlby (posh-git), https://github.com/dahlbyk/posh-git
  - Jeremy Skinner (posh-hg), https://github.com/JeremySkinner/posh-hg
- - Tomas Restrepo (fortune), http://winterdom.com/2008/03/powershellfortune

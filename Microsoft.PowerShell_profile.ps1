@@ -87,15 +87,8 @@ function HtmlEncode([string]$url) {
 }
 
 # Launch explorer in current folder
-function e {
+function e() {
     ii .
-}
-
-function Edit-HostsFile
-{
-   param($ComputerName=$env:COMPUTERNAME)
- 
-   Start-Process notepad.exe -ArgumentList \\$ComputerName\admin$\System32\drivers\etc\hosts -Verb RunAs
 }
 
 # posh-git settings
@@ -118,15 +111,12 @@ function prompt {
     # Reset color, which can be messed up by Enable-GitColors
     $Host.UI.RawUI.ForegroundColor = $GitPromptSettings.DefaultForegroundColor
 
-    Write-Host($pwd.ProviderPath) -nonewline
+    Write-Host($pwd) -nonewline
 
     Write-VcsStatus
 
-    $global:LASTEXITCODE = $realLASTEXITCODE
+    $LASTEXITCODE = $realLASTEXITCODE
 
-    return '> ' 
+    Write-Host('>') -nonewline
+    return ' ' 
 } 
-
-Enable-GitColors
-
-Pop-Location

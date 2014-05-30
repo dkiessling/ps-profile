@@ -45,30 +45,13 @@ function Get-GitBranch($gitDir = $(Get-GitDirectory), [Diagnostics.Stopwatch]$sw
                 $r = '|BISECTING'
             }
 
-            $b = Invoke-NullCoalescing `
+            $b = Coalesce-Args `
                 { dbg 'Trying symbolic-ref' $sw; git symbolic-ref HEAD 2>$null } `
-                { '({0})' -f (Invoke-NullCoalescing `
-                    {
-                        dbg 'Trying describe' $sw
-                        switch ($Global:GitPromptSettings.DescribeStyle) {
-                            'contains' { git describe --contains HEAD 2>$null }
-                            'branch' { git describe --contains --all HEAD 2>$null }
-                            'describe' { git describe HEAD 2>$null }
-                            default { git describe --tags --exact-match HEAD 2>$null }
-                        }
-                    } `
+                { '({0})' -f (Coalesce-Args `
+                    { dbg 'Trying describe' $sw; git describe --exact-match HEAD 2>$null } `
                     {
                         dbg 'Falling back on parsing HEAD' $sw
-                        $ref = $null
-
-                        if (Test-Path $gitDir\HEAD) {
-                            dbg 'Reading from .git\HEAD' $sw
-                            $ref = Get-Content $gitDir\HEAD 2>$null
-                        } else {
-                            dbg 'Trying rev-parse' $sw
-                            $ref = git rev-parse HEAD 2>$null
-                        }
-
+                        $ref = Get-Content $gitDir\HEAD 2>$null
                         if ($ref -match 'ref: (?<ref>.+)') {
                             return $Matches['ref']
                         } elseif ($ref -and $ref.Length -ge 7) {
@@ -146,7 +129,7 @@ function Get-GitStatus($gitDir = (Get-GitDirectory)) {
                         }
                     }
 
-                    '^## (?<branch>\S+?)(?:\.\.\.(?<upstream>\S+))?(?: \[(?:ahead (?<ahead>\d+))?(?:, )?(?:behind (?<behind>\d+))?\])?$' {
+                    '^## (?<branch>\S+)(?:\.\.\.(?<upstream>\S+) \[(?:ahead (?<ahead>\d+))?(?:, )?(?:behind (?<behind>\d+))?\])?$' {
                         $branch = $matches['branch']
                         $upstream = $matches['upstream']
                         $aheadBy = [int]$matches['ahead']
@@ -217,45 +200,21 @@ function Get-AliasPattern($exe) {
 
 function setenv($key, $value) {
     [void][Environment]::SetEnvironmentVariable($key, $value, [EnvironmentVariableTarget]::Process)
-    Set-TempEnv $key $value
-}
-
-function Get-TempEnv($key) {
-    $path = Join-Path ($Env:TEMP) ".ssh\$key.env"
-    if (Test-Path $path) {
-        $value =  Get-Content $path
-        [void][Environment]::SetEnvironmentVariable($key, $value, [EnvironmentVariableTarget]::Process)
-    }
-}
-
-function Set-TempEnv($key, $value) {
-    $path = Join-Path ($Env:TEMP) ".ssh\$key.env"
-    if ($value -eq $null) {
-        if (Test-Path $path) {
-            Remove-Item $path
-        }
-    } else {
-        New-Item $path -Force -ItemType File > $null
-        $value > $path
-    }
+    [void][Environment]::SetEnvironmentVariable($key, $value, [EnvironmentVariableTarget]::User)
 }
 
 # Retrieve the current SSH agent PID (or zero). Can be used to determine if there
 # is a running agent.
 function Get-SshAgent() {
-    if ($env:GIT_SSH -imatch 'plink') {
-        $pageantPid = Get-Process pageant -ErrorAction SilentlyContinue | Select -ExpandProperty Id
-        if ($pageantPid) { return $pageantPid }
-    } else {
-        $agentPid = $Env:SSH_AGENT_PID
-        if ($agentPid) {
-            $sshAgentProcess = Get-Process -Id $agentPid -ErrorAction SilentlyContinue
-            if ($sshAgentProcess -and ($sshAgentProcess.Name -eq 'ssh-agent')) {
-                return $agentPid
-            } else {
-                setenv 'SSH_AGENT_PID', $null
-                setenv 'SSH_AUTH_SOCK', $null
-            }
+    $agentPid = $Env:SSH_AGENT_PID
+    if ($agentPid) {
+        $sshAgentProcess = Get-Process -Id $agentPid -ErrorAction SilentlyContinue
+
+        if ($sshAgentProcess.Name -eq 'ssh-agent') {
+            return $agentPid
+        } elseif ($sshAgentProcess) {
+            setenv('SSH_AGENT_PID', $null)
+            setenv('SSH_AUTH_SOCK', $null)
         }
     }
 
@@ -266,65 +225,33 @@ function Get-SshAgent() {
 function Start-SshAgent([switch]$Quiet) {
     [int]$agentPid = Get-SshAgent
     if ($agentPid -gt 0) {
-        if (!$Quiet) {
-            $agentName = Get-Process -Id $agentPid | Select -ExpandProperty Name
-            if (!$agentName) { $agentName = "SSH Agent" }
-            Write-Host "$agentName is already running (pid $($agentPid))"
-        }
+        if (!$Quiet) { Write-Host "ssh-agent is already running (pid $($agentPid))" }
         return
     }
 
-    if ($env:GIT_SSH -imatch 'plink') {
-        Write-Host "GIT_SSH set to $($env:GIT_SSH), using Pageant as SSH agent."
-        $pageant = Get-Command pageant -TotalCount 1 -Erroraction SilentlyContinue
-        if (!$pageant) { Write-Warning "Could not find Pageant."; return }
-        & $pageant
-    } else {
-        $sshAgent = Get-Command ssh-agent -TotalCount 1 -ErrorAction SilentlyContinue
-        if (!$sshAgent) { Write-Warning 'Could not find ssh-agent'; return }
+    $sshAgent = Get-Command ssh-agent -TotalCount 1 -ErrorAction SilentlyContinue
+    if (!$sshAgent) { Write-Warning 'Could not find ssh-agent'; return }
 
-        & $sshAgent | foreach {
-            if($_ -match '(?<key>[^=]+)=(?<value>[^;]+);') {
-                setenv $Matches['key'] $Matches['value']
-            }
+    & $sshAgent | foreach {
+        if($_ -match '(?<key>[^=]+)=(?<value>[^;]+);') {
+            setenv $Matches['key'] $Matches['value']
         }
     }
-    Add-SshKey
-}
 
-function Get-SshPath($File = 'id_rsa')
-{
-    $home = Resolve-Path (Invoke-NullCoalescing $Env:HOME ~)
-    Resolve-Path (Join-Path $home ".ssh\$File") -ErrorAction SilentlyContinue 2> $null
+    Add-SshKey
 }
 
 # Add a key to the SSH agent
 function Add-SshKey() {
-    if ($env:GIT_SSH -imatch 'plink') {
-        $pageant = Get-Command pageant -Erroraction SilentlyContinue | Select -ExpandProperty Name
-        if (!$pageant) { Write-Warning 'Could not find Pageant'; return }
+    $sshAdd = Get-Command ssh-add -TotalCount 1 -ErrorAction SilentlyContinue
+    if (!$sshAdd) { Write-Warning 'Could not find ssh-add'; return }
 
-        if ($args.Count -eq 0) {
-            $keystring = ""
-            $keyPath = Join-Path $Env:HOME ".ssh"
-            $keys = Get-ChildItem $keyPath/"*.ppk" | Select -ExpandProperty Name
-            foreach ( $key in $keys ) { $keystring += "`"$keyPath\$key`" " }
-            & $pageant "$keystring"
-        } else {
-            foreach ($value in $args) {
-                & $pageant $value
-            }
-        }
+    if ($args.Count -eq 0) {
+        $sshPath = Resolve-Path ~/.ssh/id_rsa
+        & $sshAdd $sshPath
     } else {
-        $sshAdd = Get-Command ssh-add -TotalCount 1 -ErrorAction SilentlyContinue
-        if (!$sshAdd) { Write-Warning 'Could not find ssh-add'; return }
-
-        if ($args.Count -eq 0) {
-            & $sshAdd
-        } else {
-            foreach ($value in $args) {
-                & $sshAdd $value
-            }
+        foreach ($value in $args) {
+            & $sshAdd $value
         }
     }
 }
@@ -334,28 +261,13 @@ function Stop-SshAgent() {
     [int]$agentPid = Get-SshAgent
     if ($agentPid -gt 0) {
         # Stop agent process
-        $proc = Get-Process -Id $agentPid -ErrorAction SilentlyContinue
+        $proc = Get-Process -Id $agentPid
         if ($proc -ne $null) {
             Stop-Process $agentPid
         }
 
-        setenv 'SSH_AGENT_PID', $null
-        setenv 'SSH_AUTH_SOCK', $null
+        setenv('SSH_AGENT_PID', $null)
+        setenv('SSH_AUTH_SOCK', $null)
     }
 }
 
-function Update-AllBranches($Upstream = 'master', [switch]$Quiet) {
-    $head = git rev-parse --abbrev-ref HEAD
-    git checkout -q $Upstream
-    $branches = (git branch --no-color --no-merged) | where { $_ -notmatch '^\* ' }
-    foreach ($line in $branches) {
-        $branch = $line.SubString(2)
-        if (!$Quiet) { Write-Host "Rebasing $branch onto $Upstream..." }
-        git rebase -q $Upstream $branch > $null 2> $null
-        if ($LASTEXITCODE) {
-            git rebase --abort
-            Write-Warning "Rebase failed for $branch"
-        }
-    }
-    git checkout -q $head
-}

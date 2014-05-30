@@ -23,7 +23,7 @@ function isHgDirectory() {
     return $false
 }
 
-function Get-HgStatus($getFileStatus=$true, $getBookmarkStatus=$true) {
+function Get-HgStatus {
   if(isHgDirectory) {
     $untracked = 0
     $added = 0
@@ -34,64 +34,37 @@ function Get-HgStatus($getFileStatus=$true, $getBookmarkStatus=$true) {
     $tags = @()
     $commit = ""
     $behind = $false
-    $multipleHeads = $false
-		
-	if ($getFileStatus -eq $false) {
-		hg parent | foreach {
-		switch -regex ($_) {
-			'tag:\s*(.*)' { $tags = $matches[1].Replace("(empty repository)", "").Split(" ", [StringSplitOptions]::RemoveEmptyEntries) }
-			'changeset:\s*(\S*)' { $commit = $matches[1]}
-			}
-		}
-		$branch = hg branch
-		$behind = $true
-		$headCount = 0
-		hg heads $branch | foreach {
-			switch -regex ($_) {
-				'changeset:\s*(\S*)' 
-				{ 
-					if ($commit -eq $matches[1]) { $behind=$false }
-					$headCount++
-					if ($headCount -gt 1) { $multipleHeads=$true }
-				}
-			}
-		}
-	}
-	else
-	{
-		   hg summary | foreach {   
-		  switch -regex ($_) {
-			'parent: (\S*) ?(.*)' { $commit = $matches[1]; $tags = $matches[2].Replace("(empty repository)", "").Split(" ", [StringSplitOptions]::RemoveEmptyEntries) } 
-			'branch: ([\S ]*)' { $branch = $matches[1] }
-			'update: (\d+)' { $behind = $true }
-			'pmerge: (\d+) pending' { $behind = $true }
-			'commit: (.*)' {
-			  $matches[1].Split(",") | foreach {
-				switch -regex ($_.Trim()) {
-				  '(\d+) modified' { $modified = $matches[1] }
-				  '(\d+) added' { $added = $matches[1] }
-				  '(\d+) removed' { $deleted = $matches[1] }
-				  '(\d+) deleted' { $missing = $matches[1] }
-				  '(\d+) unknown' { $untracked = $matches[1] }
-				  '(\d+) renamed' { $renamed = $matches[1] }
-				}
-			  } 
-			} 
-		  } 
-		}
-	}
+   
+  
+       hg summary | foreach {   
+      switch -regex ($_) {
+        'parent: (\S*) ?(.*)' { $commit = $matches[1]; $tags = $matches[2].Replace("(empty repository)", "").Split(" ", [StringSplitOptions]::RemoveEmptyEntries) } 
+        'branch: ([\S ]*)' { $branch = $matches[1] }
+        'update: (\d+)' { $behind = $true }
+        'pmerge: (\d+) pending' { $behind = $true }
+        'commit: (.*)' {
+          $matches[1].Split(",") | foreach {
+            switch -regex ($_.Trim()) {
+              '(\d+) modified' { $modified = $matches[1] }
+              '(\d+) added' { $added = $matches[1] }
+              '(\d+) removed' { $deleted = $matches[1] }
+              '(\d+) deleted' { $missing = $matches[1] }
+              '(\d+) unknown' { $untracked = $matches[1] }
+              '(\d+) renamed' { $renamed = $matches[1] }
+            }
+          } 
+        } 
+      } 
+    }
     
-    
-	if ($getBookmarkStatus)
-	{
-		$active = ""
-		hg bookmarks | ?{$_}  | foreach {
-			if($_.Trim().StartsWith("*")) {
-			   $split = $_.Split(" ");
-			   $active= $split[2]
-			}
-		}
-	}
+    $active = ""
+    hg bookmarks | ?{$_}  | foreach {
+        if($_.Trim().StartsWith("*")) {
+           $split = $_.Split(" ");
+           $active= $split[2]
+        }
+    }
+   
     return @{"Untracked" = $untracked;
                "Added" = $added;
                "Modified" = $modified;
@@ -101,7 +74,6 @@ function Get-HgStatus($getFileStatus=$true, $getBookmarkStatus=$true) {
                "Tags" = $tags;
                "Commit" = $commit;
                "Behind" = $behind;
-               "MultipleHeads" = $multipleHeads;
                "ActiveBookmark" = $active;
                "Branch" = $branch}
    }
@@ -134,9 +106,4 @@ function Get-MqPatches($filter) {
     "Unapplied" = $unapplied;
     "Applied" = $applied
   }
-}
-
-function Get-AliasPattern($exe) {
-  $aliases = @($exe) + @(Get-Alias | where { $_.Definition -eq $exe } | select -Exp Name)
-  "($($aliases -join '|'))"
 }

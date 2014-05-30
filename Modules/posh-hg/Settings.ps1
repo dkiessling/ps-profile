@@ -1,8 +1,4 @@
 $global:PoshHgSettings = New-Object PSObject -Property @{
-    #Retreival settings
-    GetFileStatus             = $true
-    GetBookmarkStatus         = $true
-	
     #Before prompt
     BeforeText                = ' ['
     BeforeForegroundColor     = [ConsoleColor]::Yellow
@@ -19,9 +15,6 @@ $global:PoshHgSettings = New-Object PSObject -Property @{
     # Current branch when not updated
     Branch2ForegroundColor   = [ConsoleColor]::Red
     Branch2BackgroundColor   = $host.UI.RawUI.BackgroundColor
-    # Current branch when there are multiple heads
-    Branch3ForegroundColor	 = [ConsoleColor]::Magenta
-    Branch3BackgroundColor   = $host.UI.RawUI.BackgroundColor
     
     # Working directory status
     AddedForegroundColor      = [ConsoleColor]::Green
@@ -54,12 +47,4 @@ $global:PoshHgSettings = New-Object PSObject -Property @{
     AppliedPatchBackgroundColor   = $Host.UI.RawUI.BackgroundColor
     PatchSeparator                = ' › '
     PatchSeparatorColor           = [ConsoleColor]::White    
-    
-    # Status Count Prefixes for prompt
-    AddedStatusPrefix             = ' +'
-    ModifiedStatusPrefix          = ' ~'
-    DeletedStatusPrefix           = ' -'
-    UntrackedStatusPrefix         = ' ?'
-    MissingStatusPrefix           = ' !'
-    RenamedStatusPrefix           = ' ^'
 }
