@@ -91,6 +91,13 @@ function e {
     ii .
 }
 
+function Edit-HostsFile
+{
+   param($ComputerName=$env:COMPUTERNAME)
+ 
+   Start-Process notepad.exe -ArgumentList \\$ComputerName\admin$\System32\drivers\etc\hosts -Verb RunAs
+}
+
 # posh-git settings
 $global:GitPromptSettings.BeforeText = ' git ['
 $global:GitPromptSettings.UntrackedText = ' ?'
@@ -111,12 +118,15 @@ function prompt {
     # Reset color, which can be messed up by Enable-GitColors
     $Host.UI.RawUI.ForegroundColor = $GitPromptSettings.DefaultForegroundColor
 
-    Write-Host($pwd) -nonewline -foregroundcolor DarkGreen
+    Write-Host($pwd.ProviderPath) -nonewline
 
     Write-VcsStatus
 
-    $LASTEXITCODE = $realLASTEXITCODE
+    $global:LASTEXITCODE = $realLASTEXITCODE
 
-    Write-Host('>') -nonewline -foregroundcolor DarkGreen
-    return ' ' 
+    return '> ' 
 } 
+
+Enable-GitColors
+
+Pop-Location
