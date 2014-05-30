@@ -91,6 +91,11 @@ function e() {
     ii .
 }
 
+function Edit-HostsFile() {
+   param($ComputerName=$env:COMPUTERNAME)
+    Start-Process notepad.exe -ArgumentList \\$ComputerName\admin$\System32\drivers\etc\hosts -Verb RunAs
+}
+
 # posh-git settings
 $global:GitPromptSettings.BeforeText = ' git ['
 $global:GitPromptSettings.UntrackedText = ' ?'
