@@ -1,7 +1,7 @@
 # Initial implementation by Jeremy Skinner
 # http://www.jeremyskinner.co.uk/2010/03/07/using-git-with-windows-powershell/
 
-$global:GitTabSettings = New-Object PSObject -Property @{
+$Global:GitTabSettings = New-Object PSObject -Property @{
     AllCommands = $false
 }
 
@@ -14,14 +14,29 @@ $subcommands = @{
     submodule = 'add status init update summary foreach sync'
     svn = 'init fetch clone rebase dcommit branch tag log blame find-rev set-tree create-ignore show-ignore mkdirs commit-diff info proplist propget show-externals gc reset'
     tfs = 'bootstrap checkin checkintool ct cleanup cleanup-workspaces clone diagnostics fetch help init pull quick-clone rcheckin shelve shelve-list unshelve verify'
+    flow = 'init feature release hotfix'
 }
 
-function script:gitCmdOperations($command, $filter) {
-    $subcommands.$command -split ' ' |
+$gitflowsubcommands = @{
+    feature = 'list start finish publish track diff rebase checkout pull'
+    release = 'list start finish publish track'
+    hotfix = 'list start finish publish track'
+}
+
+function script:gitCmdOperations($commands, $command, $filter) {
+    $commands.$command -split ' ' |
         where { $_ -like "$filter*" }
 }
 
+
 $script:someCommands = @('add','am','annotate','archive','bisect','blame','branch','bundle','checkout','cherry','cherry-pick','citool','clean','clone','commit','config','describe','diff','difftool','fetch','format-patch','gc','grep','gui','help','init','instaweb','log','merge','mergetool','mv','notes','prune','pull','push','rebase','reflog','remote','rerere','reset','revert','rm','shortlog','show','stash','status','submodule','svn','tag','whatchanged')
+try {
+  if ((git help -a 2>&1 | Select-String flow) -ne $null) {
+      $script:someCommands += 'flow'
+  }
+}
+catch {
+}
 
 function script:gitCommands($filter, $includeAliases) {
     $cmdList = @()
@@ -46,26 +61,41 @@ function script:gitRemotes($filter) {
 }
 
 function script:gitBranches($filter, $includeHEAD = $false) {
+    $prefix = $null
     if ($filter -match "^(?<from>\S*\.{2,3})(?<to>.*)") {
         $prefix = $matches['from']
         $filter = $matches['to']
     }
-    $branches = @(git branch | foreach { if($_ -match "^\*?\s*(?<ref>.*)") { $matches['ref'] } }) +
-                @(git branch -r | foreach { if($_ -match "^  (?<ref>\S+)(?: -> .+)?") { $matches['ref'] } }) +
+    $branches = @(git branch --no-color | foreach { if($_ -match "^\*?\s*(?<ref>.*)") { $matches['ref'] } }) +
+                @(git branch --no-color -r | foreach { if($_ -match "^  (?<ref>\S+)(?: -> .+)?") { $matches['ref'] } }) +
                 @(if ($includeHEAD) { 'HEAD','FETCH_HEAD','ORIG_HEAD','MERGE_HEAD' })
     $branches |
         where { $_ -ne '(no branch)' -and $_ -like "$filter*" } |
         foreach { $prefix + $_ }
 }
 
+function script:gitFeatures($filter, $command){
+	$featurePrefix = git config --local --get "gitflow.prefix.$command"
+    $branches = @(git branch --no-color | foreach { if($_ -match "^\*?\s*$featurePrefix(?<ref>.*)") { $matches['ref'] } }) 
+    $branches |
+        where { $_ -ne '(no branch)' -and $_ -like "$filter*" } |
+        foreach { $prefix + $_ }
+}
+
 function script:gitRemoteBranches($remote, $ref, $filter) {
-    git branch -r |
+    git branch --no-color -r |
         where { $_ -like "  $remote/$filter*" } |
         foreach { $ref + ($_ -replace "  $remote/","") }
 }
 
 function script:gitStashes($filter) {
     (git stash list) -replace ':.*','' |
+        where { $_ -like "$filter*" } |
+        foreach { "'$_'" }
+}
+
+function script:gitTfsShelvesets($filter) {
+    (git tfs shelve-list) |
         where { $_ -like "$filter*" } |
         foreach { "'$_'" }
 }
@@ -86,6 +116,18 @@ function script:gitAddFiles($filter) {
 
 function script:gitCheckoutFiles($filter) {
     gitFiles $filter (@($GitStatus.Working.Unmerged) + @($GitStatus.Working.Modified) + @($GitStatus.Working.Deleted))
+}
+
+function script:gitDiffFiles($filter, $staged) {
+    if ($staged) {
+        gitFiles $filter $GitStatus.Index.Modified
+    } else {
+        gitFiles $filter (@($GitStatus.Working.Unmerged) + @($GitStatus.Working.Modified) + @($GitStatus.Index.Modified))
+    }
+}
+
+function script:gitMergeFiles($filter) {
+    gitFiles $filter $GitStatus.Working.Unmerged
 }
 
 function script:gitDeleted($filter) {
@@ -127,7 +169,18 @@ function GitTabExpansion($lastBlock) {
 
         # Handles git <cmd> <op>
         "^(?<cmd>$($subcommands.Keys -join '|'))\s+(?<op>\S*)$" {
-            gitCmdOperations $matches['cmd'] $matches['op']
+            gitCmdOperations $subcommands $matches['cmd'] $matches['op']
+        }
+
+
+        # Handles git flow <cmd> <op>
+        "^flow (?<cmd>$($gitflowsubcommands.Keys -join '|'))\s+(?<op>\S*)$" {
+            gitCmdOperations $gitflowsubcommands $matches['cmd'] $matches['op']
+        }
+		
+		# Handles git flow <command> <op> <name>
+        "^flow (?<command>\S*)\s+(?<op>\S*)\s+(?<name>\S*)$" {
+			gitFeatures $matches['name'] $matches['command']
         }
 
         # Handles git remote (rename|rm|set-head|set-branches|set-url|show|prune) <stash>
@@ -143,6 +196,11 @@ function GitTabExpansion($lastBlock) {
         # Handles git bisect (bad|good|reset|skip) <ref>
         "^bisect (?:bad|good|reset|skip).* (?<ref>\S*)$" {
             gitBranches $matches['ref'] $true
+        }
+
+        # Handles git tfs unshelve <shelveset>
+        "^tfs +unshelve.* (?<shelveset>\S*)$" {
+            gitTfsShelvesets $matches['shelveset']
         }
 
         # Handles git branch -d|-D|-m|-M <branch name>
@@ -205,11 +263,35 @@ function GitTabExpansion($lastBlock) {
             gitDeleted $matches['index']
         }
 
+        # Handles git diff/difftool <path>
+        "^(?:diff|difftool)(?:.* (?<staged>(?:--cached|--staged))|.*) (?<files>\S*)$" {
+            gitDiffFiles $matches['files'] $matches['staged']
+        }
+
+        # Handles git merge/mergetool <path>
+        "^(?:merge|mergetool).* (?<files>\S*)$" {
+            gitMergeFiles $matches['files']
+        }
+
         # Handles git <cmd> <ref>
-        "^(?:checkout|cherry-pick|diff|difftool|log|merge|rebase|reflog\s+show|reset|revert|show).* (?<ref>\S*)$" {
+        "^(?:checkout|cherry|cherry-pick|diff|difftool|log|merge|rebase|reflog\s+show|reset|revert|show).* (?<ref>\S*)$" {
             gitBranches $matches['ref'] $true
         }
     }
+}
+
+$PowerTab_RegisterTabExpansion = if (Get-Module -Name powertab) { Get-Command Register-TabExpansion -Module powertab -ErrorAction SilentlyContinue }
+if ($PowerTab_RegisterTabExpansion)
+{
+    & $PowerTab_RegisterTabExpansion "git.exe" -Type Command {
+        param($Context, [ref]$TabExpansionHasOutput, [ref]$QuoteSpaces)  # 1:
+
+        $line = $Context.Line
+        $lastBlock = [regex]::Split($line, '[|;]')[-1].TrimStart()
+        $TabExpansionHasOutput.Value = $true
+        GitTabExpansion $lastBlock
+    }
+    return
 }
 
 if (Test-Path Function:\TabExpansion) {

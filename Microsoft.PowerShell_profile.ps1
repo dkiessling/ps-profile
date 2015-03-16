@@ -1,68 +1,28 @@
 Push-Location (Split-Path -Path $MyInvocation.MyCommand.Definition -Parent)
 
-# use this instead (see about_Modules for more information):
-Import-Module posh-git
+Import-Module PsGet
+Import-Module PsUrl
+Import-Module PsColor
 Import-Module posh-hg
+Import-Module posh-git
 
-Pop-Location
+$VIMPATH    = "C:\Program Files (x86)\Vim\vim74\gvim.exe"
 
-# debugging parameters
-Set-PSDebug -Strict
-$ErrorActionPreference = "stop"
+Set-Alias -Name ll -Value Get-ChildItem -Description "own: Get-ChildItem"
+Set-Alias -Name vi -Value $VIMPATH
+Set-Alias -Name vim -Value $VIMPATH
 
-$powershellPath = [Environment]::GetFolderPath("Personal") + "/WindowsPowershell"
-
-Remove-Item alias:ls
-Set-Alias ls Get-ChildItemColor
-Set-Alias ll Get-ChildItemColor
-
-function Get-ChildItemColor {
-    $fore = $Host.UI.RawUI.ForegroundColor
-
-    Invoke-Expression ("Get-ChildItem $args") |
-    %{
-        if ($_.GetType().Name -eq 'DirectoryInfo') {
-            $Host.UI.RawUI.ForegroundColor = 'White'
-            echo $_
-            $Host.UI.RawUI.ForegroundColor = $fore
-        } elseif ($_.Name -match '\.(zip|tar|gz|rar)$') {
-            $Host.UI.RawUI.ForegroundColor = 'Blue'
-            echo $_
-            $Host.UI.RawUI.ForegroundColor = $fore
-        } elseif ($_.Name -match '\.(exe|bat|cmd|py|pl|ps1|psm1|vbs|rb|reg)$') {
-            $Host.UI.RawUI.ForegroundColor = 'Green'
-            echo $_
-            $Host.UI.RawUI.ForegroundColor = $fore
-        } elseif ($_.Name -match '\.(txt|cfg|conf|ini|csv|sql|xml|config)$') {
-            $Host.UI.RawUI.ForegroundColor = 'Cyan'
-            echo $_
-            $Host.UI.RawUI.ForegroundColor = $fore
-        } elseif ($_.Name -match '\.(cs|asax|aspx.cs)$') {
-            $Host.UI.RawUI.ForegroundColor = 'Yellow'
-            echo $_
-            $Host.UI.RawUI.ForegroundColor = $fore
-        } elseif ($_.Name -match '\.(aspx|spark|master)$') {
-            $Host.UI.RawUI.ForegroundColor = 'DarkYellow'
-            echo $_
-            $Host.UI.RawUI.ForegroundColor = $fore
-        } elseif ($_.Name -match '\.(sln|csproj)$') {
-            $Host.UI.RawUI.ForegroundColor = 'Magenta'
-            echo $_
-            $Host.UI.RawUI.ForegroundColor = $fore
-        }
-        else {
-            $Host.UI.RawUI.ForegroundColor = $fore
-            echo $_
-        }
-    }
+# Show all available aliase
+function Show-Alias() {
+	Get-Help * | ?{$_.Category -eq "Alias"} | sort Name | Format-Table -auto
 }
 
-function Get-Adminuser() {
-   $id = [Security.Principal.WindowsIdentity]::GetCurrent()
-   $p = New-Object Security.Principal.WindowsPrincipal($id)
-   return $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+# Show all available contextual help
+function Show-About() {
+	Get-Help About_ | select name,synopsis | format-table -auto
 }
 
+# Get the IP adresses
 function Get-Ips() {
    $ent = [net.dns]::GetHostEntry([net.dns]::GetHostName())
    return $ent.AddressList | ?{ $_.ScopeId -ne 0 } | %{
@@ -70,20 +30,10 @@ function Get-Ips() {
    }
 }
 
-function UrlDecode([string]$url) {
-    [Web.HttpUtility]::UrlDecode($url)
-}
-
-function UrlEncode([string]$url) {
-    [Web.HttpUtility]::UrlEncode($url)
-}
-
-function HtmlDecode([string]$url) {
-    [Web.HttpUtility]::HtmlDecode($url)
-}
-
-function HtmlEncode([string]$url) {
-    [Web.HttpUtility]::HtmlEncode($url)
+# Edit the hosts file
+function Edit-HostsFile() {
+   param($ComputerName=$env:COMPUTERNAME)
+    Start-Process notepad.exe -ArgumentList \\$ComputerName\admin$\System32\drivers\etc\hosts -Verb RunAs
 }
 
 # Launch explorer in current folder
@@ -91,37 +41,51 @@ function e() {
     ii .
 }
 
-function Edit-HostsFile() {
-   param($ComputerName=$env:COMPUTERNAME)
-    Start-Process notepad.exe -ArgumentList \\$ComputerName\admin$\System32\drivers\etc\hosts -Verb RunAs
+# Remove temporary files
+function Remove-TempFiles() {
+	Get-ChildItem . -include *.bak, *.orig, thumbs.db, Thumbs.db -recurse | foreach ($_) { remove-item $_.fullname }
 }
 
-# posh-git settings
-$global:GitPromptSettings.BeforeText = ' git ['
-$global:GitPromptSettings.UntrackedText = ' ?'
-$global:GitPromptSettings.UntrackedForegroundColor = [ConsoleColor]::Red
+# Check if user is administrator
+function Get-IsAdminUser() {
+    $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $wp = new-object Security.Principal.WindowsPrincipal($id)
+    
+    return $wp.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
 
-# posh-hg settings
+function df ( $Path ) {
+	if ( !$Path ) { $Path = (Get-Location -PSProvider FileSystem).ProviderPath }
+	$Drive = (Get-Item $Path).Root -replace "\\"
+	$Output = Get-WmiObject -Query "select freespace from win32_logicaldisk where deviceid = `'$drive`'"
+	Write-Output "$($Output.FreeSpace / 1mb) MB"
+}
+
+function Resolve-IPAddress 
+{    
+    param ( [IPAddress] $IPAddress )
+
+    [Net.DNS]::GetHostByAddress($IPAddress)
+} 
+
 $global:HgPromptSettings.BeforeText = ' hg ['
-$global:HgPromptSettings.ModifiedForegroundColor = [ConsoleColor]::Yellow
-$global:HgPromptSettings.DeletedForegroundColor = [ConsoleColor]::Cyan
-$global:HgPromptSettings.UntrackedForegroundColor = [ConsoleColor]::Red
-$global:HgPromptSettings.MissingForegroundColor = [ConsoleColor]::Magenta
-$global:HgPromptSettings.RenamedForegroundColor = [ConsoleColor]::Blue
+$global:GitPromptSettings.BeforeText = ' git ['
+$global:PSColor.File.Code.Pattern = '\.(java|c|cpp|cs|js|css|html|scss|json|aspx)$'
+$global:PSColor.File.Text.Pattern = '\.(txt|cfg|conf|ini|csv|log|config|xml|yml|md|markdown|config)$'
+$global:PSColor.File.Compressed.Pattern = '\.(zip|tar|gz|rar|jar|war)$'
 
-function prompt { 
-    $Host.UI.RawUI.WindowTitle = $env:username + '@' + [System.Environment]::MachineName + ' - ' + $pwd 
+function prompt {
     $realLASTEXITCODE = $LASTEXITCODE
-
-    # Reset color, which can be messed up by Enable-GitColors
-    $Host.UI.RawUI.ForegroundColor = $GitPromptSettings.DefaultForegroundColor
-
-    Write-Host($pwd) -nonewline
+    Write-Host($pwd.ProviderPath) -nonewline
 
     Write-VcsStatus
 
-    $LASTEXITCODE = $realLASTEXITCODE
+    $global:LASTEXITCODE = $realLASTEXITCODE
+    return "> "
+}
 
-    Write-Host('>') -nonewline
-    return ' ' 
-} 
+#Enable-GitColors
+
+Pop-Location
+
+#Start-SshAgent -Quiet

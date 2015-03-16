@@ -10,10 +10,11 @@ Import-Module .\posh-hg
 
 # Set up a simple prompt, adding the hg prompt parts inside hg repos
 function prompt {
-    Write-Host($pwd) -nonewline
+    $realLASTEXITCODE = $LASTEXITCODE
+    Write-Host($pwd.ProviderPath) -nonewline
 
     Write-VcsStatus
-      
+    $global:LASTEXITCODE = $realLASTEXITCODE
     return "> "
 }
 
