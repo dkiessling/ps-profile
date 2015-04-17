@@ -9,5 +9,8 @@ To use, clone this repository to a `WindowsPowershell` directory in the default 
 
 ### Used powershell modules:
 
+ - Mike Chali (PSGet), https://github.com/psget/psget
+ - Mike Chali (PSUrl), https://github.com/chaliy/psurl
  - Keith Dahlby (posh-git), https://github.com/dahlbyk/posh-git
  - Jeremy Skinner (posh-hg), https://github.com/JeremySkinner/posh-hg
+ - David Lindblad (PSColor), https://github.com/Davlind/PSColor
