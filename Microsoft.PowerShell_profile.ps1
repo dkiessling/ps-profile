@@ -68,6 +68,22 @@ function Resolve-IPAddress
     [Net.DNS]::GetHostByAddress($IPAddress)
 } 
 
+# pull and update all Mercurial repositoriesin the current directory
+function hg-all()
+{
+	$s = New-Object PSObject -Property @{
+	    FolderForegroundColor = [ConsoleColor]::Cyan
+    }
+
+	Get-ChildItem -r -i .hg -fo | % {
+		Push-Location $_.fullname
+		cd ..
+		Write-Host -fore $s.FolderForegroundColor (Get-Location).Path
+		hg pull -u
+		Pop-Location
+	}
+}
+ 
 $global:HgPromptSettings.BeforeText = ' hg ['
 $global:GitPromptSettings.BeforeText = ' git ['
 $global:PSColor.File.Code.Pattern = '\.(java|c|cpp|cs|js|css|html|scss|json|aspx)$'
